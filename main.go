@@ -9,7 +9,7 @@ import (
 )
 
 // Number of product in a Batch
-const maxProduct int = 10
+const maxProduct = 10
 
 // Product Successfully Made, Product Failed, Total Product produced
 var sucProduct, failProduct int // totalP int
@@ -40,13 +40,14 @@ func (o *serviceHost) Close() error {
 func production(incomingOrder *serviceHost) {
 
 	// Create a variable to keep track of the incoming order
-	var orderNo int
+		orderNo := 0
 
 	// Send the incoming order to the factory for procuction
 	// We get the output of the production
 	for {
 
 		output := produce(orderNo)
+		orderNo = output.batchNo
 
 		select {
 
@@ -64,47 +65,53 @@ func production(incomingOrder *serviceHost) {
 
 func produce(orderNumber int) *orderStat {
 
-	var exitMesg string
-	success := false
-
 	// Increment the order Number
 	orderNumber++
 
-	// Take a moment to produce
-	processingTime := rand.Intn(7) + 1
+	if orderNumber <= maxProduct {
 
-	// Inform client we have received order
-	color.White("We have recieved the Order #%d\nYour order will take %d seconds to be processed, kindly exercise patience", orderNumber, processingTime)
-
-	// Begin producing based on Probably
-	time.Sleep(time.Duration(processingTime) * time.Second)
-
-	temp := rand.Intn(12) + 1
-
-	switch {
-	case temp < 2:
-		failProduct++
-		exitMesg = fmt.Sprintln("Apologies, we are unable to produce as the temperature is too low for the machines to work")
-	case temp < 5:
-		failProduct++
-		exitMesg = fmt.Sprintln("We are experience some idle time here.")
-	case temp < 9:
-		sucProduct++
-		exitMesg = fmt.Sprintln("Successfully made the product.")
-		success = true
-	case temp <= 12:
-		failProduct++
-		exitMesg = fmt.Sprintln("Too hot for worker to work.")
-
+		var exitMesg string
+		success := false
+	
+	
+		// Take a moment to produce
+		processingTime := rand.Intn(7) + 1
+	
+		// Inform client we have received order
+		color.White("We have recieved the Order #%d\nYour order will take %d seconds to be processed, kindly exercise patience", orderNumber, processingTime)
+	
+		// Begin producing based on Probably
+		time.Sleep(time.Duration(processingTime) * time.Second)
+	
+		temp := rand.Intn(12) + 1
+	
+		switch {
+		case temp < 2:
+			failProduct++
+			exitMesg = fmt.Sprintf("Apologies, we are unable to produce #%d the temperature is too low for the machines to work", orderNumber)
+		case temp < 5:
+			failProduct++
+			exitMesg = fmt.Sprintf("We are experience some idle time here. Order #%d failed", orderNumber)
+		case temp < 9:
+			sucProduct++
+			exitMesg = fmt.Sprintf("Successfully made #%d.", orderNumber)
+			success = true
+		case temp <= 12:
+			failProduct++
+			exitMesg = fmt.Sprintf("Too hot for worker to work. Order #%d failed", orderNumber)
+	
+		}
+	
+		p := orderStat{
+			batchNo: orderNumber,
+			Memo:    exitMesg,
+			suc:     success,
+		}
+	
+		return &p
 	}
 
-	p := orderStat{
-		batchNo: orderNumber,
-		Memo:    exitMesg,
-		suc:     success,
-	}
-
-	return &p
+	return &orderStat{batchNo: orderNumber}
 }
 
 // Function to call when the temperature is too low to work
@@ -138,14 +145,13 @@ func main() {
 				color.Red("What a terrible day")
 			}
 		} else {
-			color.Cyan("Done making pizzas...")
+			color.Cyan("We have closed for the day")
 			err := factory.Close()
 			if err != nil {
 				color.Red("*** Error closing channel!", err)
 			}
 		}
 	}
-
 	// Ending Test
 
 }
